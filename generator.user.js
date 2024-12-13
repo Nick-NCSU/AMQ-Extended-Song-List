@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.1
+// @version      1.0
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
