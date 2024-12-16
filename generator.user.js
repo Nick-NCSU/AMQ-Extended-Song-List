@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.0
+// @version      1.1
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
@@ -36,6 +36,31 @@ async function setup() {
         }
     });
     listener.bindListener();
+
+    const listener2 = new Listener("answer results", (payload) => {
+        if(quiz.isSpectator) return;
+
+        const matchingSong = Object.values(songList).find(song => {
+            return song.name === payload.songInfo.songName
+                && Object.keys(song.anime).some(id => +id === payload.songInfo.annId)
+                && song.artist === payload.songInfo.artistInfo.name;
+        });
+
+        if(!matchingSong) return;
+
+        let isCorrect;
+        if (quiz.gameMode === "Nexus") {
+            isCorrect = payload.players[0]?.correct;
+        } else {
+            isCorrect = payload.players.find(player => player.gamePlayerId === quiz.ownGamePlayerId)?.correct;
+        }
+
+        isCorrect ? matchingSong.totalCorrectCount++ : matchingSong.totalWrongCount++;
+        matchingSong.globalPercent = Math.round(payload.songInfo.animeDifficulty);
+
+        localStorage.setItem("extendedSongList", JSON.stringify(songList));
+    });
+    listener2.bindListener();
 
     let loadCount = 0;
     for(const song of Object.values(songList)) {
