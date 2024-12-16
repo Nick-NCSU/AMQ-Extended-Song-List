@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.1
+// @version      1.2
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
@@ -104,6 +104,8 @@ async function loadSongList() {
                 name: entry.name,
                 rebroadcast: entry.rebroadcast,
                 dub: entry.dub,
+                type: song.type,
+                number: song.number,
                 anime: {
                     ...songList[song.annSongId]?.anime,
                     [anime.annId]: {
