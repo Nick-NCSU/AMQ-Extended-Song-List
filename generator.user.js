@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.2
+// @version      1.3
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
+// @require      https://github.com/joske2865/AMQ-Scripts/raw/master/common/amqScriptInfo.js
 // @downloadURL  https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js
 // @updateURL    https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js
 // ==/UserScript==
 
+let songList = JSON.parse(localStorage.getItem("extendedSongList") ?? "{}");
 await setup();
 
 async function setup() {
@@ -20,8 +22,86 @@ async function setup() {
         return;
     }
 
-    const songList = await loadSongList();
+    setupScriptData();
 
+    await loadSongList();
+
+    setupListeners();
+
+    await loadExtendedData();
+}
+
+function setupScriptData() {
+    AMQ_addScriptData({
+        name: "Extended Song Info Generator",
+        author: "Nick-NCSU",
+        version: "1.2",
+        link: "https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js",
+        description: `
+            <p>Collects extended data from your list of anime.</p>
+            <p id="extended-song-info-progress">Progress 0/0</p>
+            <a id="extended-song-info-download">Download</a>
+            <a id="extended-song-info-reset">Reset</a>
+        `
+    });
+
+    const downloadButton = document.getElementById('extended-song-info-download');
+    downloadButton.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(songList, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'extendedSongList.json';
+        link.click();
+    });
+
+    const resetButton = document.getElementById('extended-song-info-reset');
+    resetButton.addEventListener('click', () => {
+        Object.values(songList).forEach(song => delete song.fileName);
+        loadExtendedData();
+    });
+}
+
+async function loadSongList() {
+    console.log("Loading song list");
+
+    await new Promise((res) => expandLibrary.library.setup(res));
+
+    let filter = expandLibrary.library.filterApplier.currentFilter;
+    filter.watchedStatus.unwatched = false;
+    expandLibrary.library.filterApplier.applyBaseFilter(filter);
+    const amqList = expandLibrary.library.filterApplier.filteredEntries.map(anime => anime.animeEntry);
+
+    for(const anime of amqList) {
+        const songs = [...anime.songs.OP, ...anime.songs.ED, ...anime.songs.INS];
+        for(const song of songs) {
+            const entry = song.songEntry;
+            songList[song.annSongId] = {
+                ...songList[song.annSongId],
+                annSongId: song.annSongId,
+                amqSongId: entry.songId,
+                artist: entry.artist.name,
+                name: entry.name,
+                rebroadcast: entry.rebroadcast,
+                dub: entry.dub,
+                type: song.type,
+                number: song.number,
+                anime: {
+                    ...songList[song.annSongId]?.anime,
+                    [anime.annId]: {
+                        annId: anime.annId,
+                        category: anime.category,
+                        names: anime.mainNames,
+                    }
+                }
+            };
+        }
+    }
+
+    localStorage.setItem("extendedSongList", JSON.stringify(songList));
+    return songList;
+}
+
+function setupListeners() {
     const listener = new Listener("get song extended info", (payload) => {
 	    if(songList[payload.annSongId]) {
             songList[payload.annSongId] = {
@@ -61,7 +141,11 @@ async function setup() {
         localStorage.setItem("extendedSongList", JSON.stringify(songList));
     });
     listener2.bindListener();
+}
 
+async function loadExtendedData() {
+    const progressText = document.getElementById('extended-song-info-progress');
+    const totalSongs = Object.keys(songList).length;
     let loadCount = 0;
     for(const song of Object.values(songList)) {
         if(!song.fileName) {
@@ -74,52 +158,12 @@ async function setup() {
                 }
             });
             await sleep(2_000);
-            console.log(`Loaded ${loadCount + 1}/${Object.keys(songList).length}`);
+            console.log(`Loaded ${loadCount + 1}/${totalSongs}`);
         }
         loadCount++;
+        progressText.textContent = `Progress ${loadCount}/${totalSongs}`;
     }
     console.log("Finished loading all songs");
-}
-
-async function loadSongList() {
-    console.log("Loading song list");
-
-    await new Promise((res) => expandLibrary.library.setup(res));
-
-    let filter = expandLibrary.library.filterApplier.currentFilter;
-    filter.watchedStatus.unwatched = false;
-    expandLibrary.library.filterApplier.applyBaseFilter(filter);
-    const amqList = expandLibrary.library.filterApplier.filteredEntries.map(anime => anime.animeEntry);
-
-    const songList = JSON.parse(localStorage.getItem("extendedSongList") ?? "{}");
-    for(const anime of amqList) {
-        const songs = [...anime.songs.OP, ...anime.songs.ED, ...anime.songs.INS];
-        for(const song of songs) {
-            const entry = song.songEntry;
-            songList[song.annSongId] = {
-                ...songList[song.annSongId],
-                annSongId: song.annSongId,
-                amqSongId: entry.songId,
-                artist: entry.artist.name,
-                name: entry.name,
-                rebroadcast: entry.rebroadcast,
-                dub: entry.dub,
-                type: song.type,
-                number: song.number,
-                anime: {
-                    ...songList[song.annSongId]?.anime,
-                    [anime.annId]: {
-                        annId: anime.annId,
-                        category: anime.category,
-                        names: anime.mainNames,
-                    }
-                }
-            };
-        }
-    }
-
-    localStorage.setItem("extendedSongList", JSON.stringify(songList));
-    return songList;
 }
 
 function sleep(ms) {
