@@ -8,8 +8,8 @@
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        none
 // @require      https://github.com/joske2865/AMQ-Scripts/raw/master/common/amqScriptInfo.js
-// @downloadURL  https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js
-// @updateURL    https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js
+// @downloadURL  https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/refs/heads/main/generator.user.js
+// @updateURL    https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/refs/heads/main/generator.user.js
 // ==/UserScript==
 
 let songList = JSON.parse(localStorage.getItem("extendedSongList") ?? "{}");
