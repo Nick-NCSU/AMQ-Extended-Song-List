@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.4.1
+// @version      1.4.2
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
@@ -36,8 +36,8 @@ function setupScriptData() {
     AMQ_addScriptData({
         name: "Extended Song Info Generator",
         author: "Nick-NCSU",
-        version: "1.2",
-        link: "https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/main/src/generator.user.js",
+        version: "1.4.2",
+        link: "https://github.com/Nick-NCSU/AMQ-Extended-Song-List/raw/refs/heads/main/generator.user.js",
         description: `
             <p>Collects extended data from your list of anime.</p>
             <p id="extended-song-info-progress">Progress 0/0</p>
