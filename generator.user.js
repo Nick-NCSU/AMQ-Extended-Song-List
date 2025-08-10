@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         AMQ Extended Song Info Generator
 // @namespace    https://github.com/Nick-NCSU
-// @version      1.3
+// @version      1.4
 // @description  Generates a list of your anime and stores in the "extendedSongList" localstorage
 // @author       Nick-NCSU
 // @match        https://*.animemusicquiz.com/*
@@ -13,6 +13,7 @@
 // ==/UserScript==
 
 let songList = JSON.parse(localStorage.getItem("extendedSongList") ?? "{}");
+let extendedDataPID = 0;
 await setup();
 
 async function setup() {
@@ -28,7 +29,7 @@ async function setup() {
 
     setupListeners();
 
-    await loadExtendedData();
+    await loadExtendedData(++extendedDataPID);
 }
 
 function setupScriptData() {
@@ -40,7 +41,8 @@ function setupScriptData() {
         description: `
             <p>Collects extended data from your list of anime.</p>
             <p id="extended-song-info-progress">Progress 0/0</p>
-            <a id="extended-song-info-download">Download</a>
+            <a id="extended-song-info-download">Download</a> —
+            <a id="extended-song-info-prune">Remove Deleted</a> —
             <a id="extended-song-info-reset">Reset</a>
         `
     });
@@ -54,14 +56,25 @@ function setupScriptData() {
         link.click();
     });
 
+    const pruneButton = document.getElementById('extended-song-info-prune');
+    pruneButton.addEventListener('click', async () => {
+        extendedDataPID++;
+        await sleep(2_000);
+        await loadSongList(true);
+        await loadExtendedData(extendedDataPID);
+    });
+
     const resetButton = document.getElementById('extended-song-info-reset');
-    resetButton.addEventListener('click', () => {
-        Object.values(songList).forEach(song => delete song.fileName);
-        loadExtendedData();
+    resetButton.addEventListener('click', async () => {
+        extendedDataPID++;
+        await sleep(2_000);
+        songList = {};
+        await loadSongList();
+        await loadExtendedData(extendedDataPID);
     });
 }
 
-async function loadSongList() {
+async function loadSongList(deleteMissing = false) {
     console.log("Loading song list");
 
     await new Promise((res) => expandLibrary.library.setup(res));
@@ -94,6 +107,17 @@ async function loadSongList() {
                     }
                 }
             };
+        }
+    }
+
+    if(deleteMissing) {
+        console.log("Deleting missing values from list");
+        const validSongs = new Set(amqList.flatMap(anime => [...anime.songs.OP, ...anime.songs.ED, ...anime.songs.INS]).map(song => song.annSongId));
+        for(const key in songList) {
+            if(!validSongs.has(+key)) {
+                console.log(`Deleting song ${key}`);
+                delete songList[key];
+            }
         }
     }
 
@@ -143,11 +167,15 @@ function setupListeners() {
     listener2.bindListener();
 }
 
-async function loadExtendedData() {
+async function loadExtendedData(PID) {
     const progressText = document.getElementById('extended-song-info-progress');
     const totalSongs = Object.keys(songList).length;
     let loadCount = 0;
     for(const song of Object.values(songList)) {
+        if(extendedDataPID !== PID) {
+            console.log("Restarting loading data");
+            return;
+        }
         if(!song.fileName) {
             socket.sendCommand({
                 type: "library",
